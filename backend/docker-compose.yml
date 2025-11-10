@@ -1,0 +1,230 @@
+version: '3.8'
+
+services:
+  # SQL Server
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ecommerce-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - ecommerce-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ecommerce-network
+    command: redis-server --appendonly yes
+
+  # RabbitMQ (Alternative to Azure Service Bus for local dev)
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ecommerce-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin123
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - ecommerce-network
+
+  # Identity Service
+  identity-service:
+    build:
+      context: ./src/Services/Identity.Service
+      dockerfile: Dockerfile
+    container_name: identity-service
+    ports:
+      - "5001:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=ECommerce_Identity;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True
+      - Redis__ConnectionString=redis:6379
+      - JwtSettings__Secret=YourSuperSecretKeyForJWTTokenGeneration123456
+      - JwtSettings__Issuer=ECommerceIdentityService
+      - JwtSettings__Audience=ECommerceAPI
+    depends_on:
+      - sqlserver
+      - redis
+    networks:
+      - ecommerce-network
+
+  # Catalog Service
+  catalog-service:
+    build:
+      context: ./src/Services/Catalog.Service
+      dockerfile: Dockerfile
+    container_name: catalog-service
+    ports:
+      - "5002:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=ECommerce_Catalog;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True
+      - Redis__ConnectionString=redis:6379
+      - MessageBroker__Host=rabbitmq
+      - MessageBroker__Username=admin
+      - MessageBroker__Password=admin123
+    depends_on:
+      - sqlserver
+      - redis
+      - rabbitmq
+    networks:
+      - ecommerce-network
+
+  # Order Service
+  order-service:
+    build:
+      context: ./src/Services/Order.Service
+      dockerfile: Dockerfile
+    container_name: order-service
+    ports:
+      - "5003:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=ECommerce_Orders;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True
+      - Redis__ConnectionString=redis:6379
+      - MessageBroker__Host=rabbitmq
+      - MessageBroker__Username=admin
+      - MessageBroker__Password=admin123
+    depends_on:
+      - sqlserver
+      - redis
+      - rabbitmq
+    networks:
+      - ecommerce-network
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./src/Services/AI.Service
+      dockerfile: Dockerfile
+    container_name: ai-service
+    ports:
+      - "5004:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - AzureOpenAI__Endpoint=https://your-openai-resource.openai.azure.com/
+      - AzureOpenAI__ApiKey=your-api-key-here
+      - AzureOpenAI__DeploymentName=gpt-4
+      - Redis__ConnectionString=redis:6379
+    depends_on:
+      - redis
+    networks:
+      - ecommerce-network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./src/Services/Payment.Service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "5005:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=ECommerce_Payments;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True
+      - Stripe__SecretKey=sk_test_your_stripe_key
+      - PayPal__ClientId=your_paypal_client_id
+      - PayPal__ClientSecret=your_paypal_client_secret
+      - Razorpay__KeyId=your_razorpay_key_id
+      - Razorpay__KeySecret=your_razorpay_key_secret
+    depends_on:
+      - sqlserver
+    networks:
+      - ecommerce-network
+
+  # Social Service
+  social-service:
+    build:
+      context: ./src/Services/Social.Service
+      dockerfile: Dockerfile
+    container_name: social-service
+    ports:
+      - "5006:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Facebook__AppId=your_facebook_app_id
+      - Facebook__AppSecret=your_facebook_app_secret
+      - Instagram__ClientId=your_instagram_client_id
+      - Instagram__ClientSecret=your_instagram_client_secret
+      - WhatsApp__AccessToken=your_whatsapp_access_token
+    networks:
+      - ecommerce-network
+
+  # Subscription Service
+  subscription-service:
+    build:
+      context: ./src/Services/Subscription.Service
+      dockerfile: Dockerfile
+    container_name: subscription-service
+    ports:
+      - "5007:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=ECommerce_Subscriptions;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True
+      - Stripe__SecretKey=sk_test_your_stripe_key
+      - Stripe__WebhookSecret=whsec_your_webhook_secret
+    depends_on:
+      - sqlserver
+    networks:
+      - ecommerce-network
+
+  # API Gateway (Ocelot)
+  api-gateway:
+    build:
+      context: ./src/ApiGateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - identity-service
+      - catalog-service
+      - order-service
+      - ai-service
+      - payment-service
+      - social-service
+      - subscription-service
+    networks:
+      - ecommerce-network
+
+  # Angular Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecommerce-frontend
+    ports:
+      - "4200:80"
+    environment:
+      - API_URL=http://api-gateway
+    depends_on:
+      - api-gateway
+    networks:
+      - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+  redis-data:
+  rabbitmq-data:

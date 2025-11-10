@@ -1,7 +1,7 @@
 {
-  "name": "angular-multitenant-app",
+  "name": "ai-ecommerce-platform",
   "version": "1.0.0",
-  "description": "Advanced Multi-Tenant Angular Application",
+  "description": "AI-Powered Multi-Tenant E-Commerce Platform",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -16,16 +16,16 @@
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
     "e2e": "ng e2e",
-    "analyze": "npx webpack-bundle-analyzer dist/angular-multitenant-app/stats.json",
+    "analyze": "npx webpack-bundle-analyzer dist/ai-ecommerce-platform/stats.json",
     "audit": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
-    "docker:build": "docker build -t angular-multitenant-app .",
-    "docker:run": "docker run -p 80:80 angular-multitenant-app",
+    "docker:build": "docker build -t ai-ecommerce-platform .",
+    "docker:run": "docker run -p 80:80 ai-ecommerce-platform",
     "docker:compose": "docker-compose up -d",
     "docker:compose:build": "docker-compose up --build -d",
-    "serve:ssr": "ng run angular-multitenant-app:serve-ssr",
-    "build:ssr": "ng run angular-multitenant-app:build-ssr",
-    "prerender": "ng run angular-multitenant-app:prerender"
+    "serve:ssr": "ng run ai-ecommerce-platform:serve-ssr",
+    "build:ssr": "ng run ai-ecommerce-platform:build-ssr",
+    "prerender": "ng run ai-ecommerce-platform:prerender"
   },
   "private": true,
   "dependencies": {
@@ -45,6 +45,10 @@
     "@ngrx/store-devtools": "^18.0.0",
     "primeng": "^17.0.0",
     "primeicons": "^7.0.0",
+    "chart.js": "^4.4.0",
+    "ng2-charts": "^5.0.0",
+    "fabric": "^5.3.0",
+    "file-saver": "^2.0.5",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.0"
@@ -55,6 +59,7 @@
     "@angular/compiler-cli": "^18.0.0",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^18.7.0",
+    "@types/file-saver": "^2.0.5",
     "jasmine-core": "~5.1.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
